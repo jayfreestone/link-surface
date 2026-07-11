@@ -1,0 +1,26 @@
+name: Stage package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Staged publishing requires npm 11.15.0 or newer.
+      - run: npm install --global npm@11.18.0
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      # prepack runs the full verify pipeline before the tarball is created.
+      # The package must already exist on npm before it can be staged.
+      - run: npm stage publish --access public

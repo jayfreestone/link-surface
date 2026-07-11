@@ -6,6 +6,6 @@ describe("server imports", () => {
   test("evaluate without browser globals", () => {
     expect(globalThis.HTMLElement).toBeUndefined();
     expect(LinkSurface).toBeTypeOf("function");
-    expect(defineLinkSurface()).toBeUndefined();
+    expect(() => defineLinkSurface()).not.toThrow();
   });
 });

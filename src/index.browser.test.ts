@@ -13,45 +13,38 @@ beforeEach(() => {
 });
 
 describe("primary-link discovery", () => {
-  test("enhances only a surface with exactly one designated anchor", () => {
+  test("uses the first owned designated anchor in document order", () => {
     const valid = mount();
     expect(valid.primaryLink).toBe(valid.querySelector("a"));
-    expect(valid).toHaveAttribute("data-link-surface-ready");
 
     const missing = mount("<p data-inert>Summary</p>");
     expect(missing.primaryLink).toBeUndefined();
-    expect(missing).not.toHaveAttribute("data-link-surface-ready");
 
-    const ambiguous = mount(`
+    const duplicated = mount(`
       <a data-primary-link href="#one">One</a>
       <a data-primary-link href="#two">Two</a>
       <p data-inert>Summary</p>
     `);
-    expect(ambiguous.primaryLink).toBeUndefined();
-    expect(ambiguous).not.toHaveAttribute("data-link-surface-ready");
+    expect(duplicated.primaryLink).toBe(duplicated.querySelector("a"));
   });
 
-  test("tracks replacement, removal, and relevant attribute changes", async () => {
+  test("resolves the primary link live as the DOM changes", () => {
     const surface = mount("<p data-inert>Summary</p>");
     const link = document.createElement("a");
     link.dataset.primaryLink = "";
     link.href = "#article";
     link.textContent = "Article";
     surface.prepend(link);
-
-    await expect.poll(() => surface.primaryLink).toBe(link);
-    expect(surface).toHaveAttribute("data-link-surface-ready");
+    expect(surface.primaryLink).toBe(link);
 
     link.removeAttribute("href");
-    await expect.poll(() => surface.primaryLink).toBeUndefined();
-    expect(surface).not.toHaveAttribute("data-link-surface-ready");
+    expect(surface.primaryLink).toBeUndefined();
 
     link.href = "#article";
-    await expect.poll(() => surface.primaryLink).toBe(link);
+    expect(surface.primaryLink).toBe(link);
 
     link.remove();
-    await expect.poll(() => surface.primaryLink).toBeUndefined();
-    expect(surface).not.toHaveAttribute("data-link-surface-ready");
+    expect(surface.primaryLink).toBeUndefined();
   });
 
   test("does not adopt the designated link from a nested surface", () => {
@@ -62,11 +55,11 @@ describe("primary-link discovery", () => {
         <p>Inner content</p>
       </link-surface>
     `);
-    const inner = outer.querySelector("link-surface");
+    const inner = outer.querySelector<LinkSurface>("link-surface");
 
     expect(outer.primaryLink).toBeUndefined();
     expect(inner).toBeInstanceOf(LinkSurface);
-    expect(inner).toHaveAttribute("data-link-surface-ready");
+    expect(inner?.primaryLink).toBe(inner?.querySelector("a"));
   });
 });
 
@@ -146,6 +139,39 @@ describe("activation", () => {
     expect(clicks.count).toBe(0);
   });
 
+  test("does not proxy interactive content inside an open shadow root", () => {
+    // The click retargets to the shadow host (a plain <div>) as the surface's
+    // listener sees it, so event.target alone would miss the nested <button>.
+    // composedPath() keeps the button in view and suppression must still apply.
+    const surface = mount(`<a data-primary-link href="#article">Article</a>`);
+    const link = requireElement(surface, "a");
+    const host = document.createElement("div");
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = `<button type="button"><span data-target>Save</span></button>`;
+    surface.append(host);
+    const target = requireElement(root, "[data-target]");
+    const clicks = trackClicks(link);
+
+    target.click();
+
+    expect(clicks.count).toBe(0);
+  });
+
+  test("proxies inert content inside an open shadow root", () => {
+    const surface = mount(`<a data-primary-link href="#article">Article</a>`);
+    const link = requireElement(surface, "a");
+    const host = document.createElement("div");
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = `<span data-target>Summary</span>`;
+    surface.append(host);
+    const target = requireElement(root, "[data-target]");
+    const clicks = trackClicks(link);
+
+    target.click();
+
+    expect(clicks.count).toBe(1);
+  });
+
   test("respects cancellation and unsupported mouse gestures", () => {
     const surface = mount();
     const link = requireElement(surface, "a");
@@ -197,39 +223,7 @@ describe("activation", () => {
   });
 });
 
-describe("gesture safeguards", () => {
-  test("does not activate after pointer movement or cancellation", () => {
-    const surface = mount();
-    const link = requireElement(surface, "a");
-    const inert = requireElement(surface, "[data-inert]");
-    const clicks = trackClicks(link);
-
-    dispatchPointer(inert, "pointerdown", { clientX: 10, clientY: 10 });
-    dispatchPointer(inert, "pointermove", { clientX: 30, clientY: 10 });
-    dispatchPointer(inert, "pointerup", { clientX: 30, clientY: 10 });
-    inert.click();
-
-    dispatchPointer(inert, "pointerdown", { clientX: 10, clientY: 10 });
-    dispatchPointer(inert, "pointercancel", { clientX: 10, clientY: 10 });
-    inert.click();
-
-    expect(clicks.count).toBe(0);
-  });
-
-  test("allows a small amount of pointer tremor", () => {
-    const surface = mount();
-    const link = requireElement(surface, "a");
-    const inert = requireElement(surface, "[data-inert]");
-    const clicks = trackClicks(link);
-
-    dispatchPointer(inert, "pointerdown", { clientX: 10, clientY: 10 });
-    dispatchPointer(inert, "pointermove", { clientX: 14, clientY: 13 });
-    dispatchPointer(inert, "pointerup", { clientX: 14, clientY: 13 });
-    inert.click();
-
-    expect(clicks.count).toBe(1);
-  });
-
+describe("selection safeguard", () => {
   test("does not activate while text in the surface is selected", () => {
     const surface = mount();
     const link = requireElement(surface, "a");
@@ -260,14 +254,12 @@ describe("semantics and registration", () => {
     expect(link.tabIndex).toBe(0);
   });
 
-  test("registers idempotently and supports custom names", () => {
-    const first = defineLinkSurface("test-link-surface");
-    const second = defineLinkSurface("test-link-surface");
-
-    expect(second).toBe(first);
-    expect(document.createElement("test-link-surface")).toBeInstanceOf(
-      LinkSurface,
-    );
+  test("registers idempotently", () => {
+    expect(() => {
+      defineLinkSurface();
+      defineLinkSurface();
+    }).not.toThrow();
+    expect(document.createElement("link-surface")).toBeInstanceOf(LinkSurface);
   });
 });
 
@@ -319,21 +311,5 @@ function dispatchClick(
 ): void {
   target.dispatchEvent(
     new MouseEvent("click", { bubbles: true, cancelable: true, ...init }),
-  );
-}
-
-function dispatchPointer(
-  target: Element,
-  type: "pointercancel" | "pointerdown" | "pointermove" | "pointerup",
-  init: PointerEventInit,
-): void {
-  target.dispatchEvent(
-    new PointerEvent(type, {
-      bubbles: true,
-      button: 0,
-      isPrimary: true,
-      pointerId: 1,
-      ...init,
-    }),
   );
 }

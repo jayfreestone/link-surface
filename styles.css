@@ -2,6 +2,6 @@ link-surface {
   display: block;
 }
 
-link-surface[data-link-surface-ready] {
+link-surface:defined:has(a[data-primary-link][href]) {
   cursor: pointer;
 }

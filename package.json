@@ -7,25 +7,36 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./auto": {
       "types": "./dist/auto.d.ts",
-      "import": "./dist/auto.js"
+      "default": "./dist/auto.js"
     },
-    "./styles.css": "./styles.css"
+    "./global": "./dist/link-surface.iife.js",
+    "./styles.css": "./styles.css",
+    "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/link-surface.iife.js",
+  "jsdelivr": "./dist/link-surface.iife.js",
+  "customElements": "custom-elements.json",
   "files": [
     "dist",
-    "styles.css"
+    "styles.css",
+    "custom-elements.json",
+    "CHANGELOG.md"
   ],
   "sideEffects": [
     "./dist/auto.js",
     "./styles.css"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && npm run manifest",
+    "dev": "vite",
+    "manifest": "cem analyze",
+    "site": "npm run build && vite build",
+    "serve": "npm run site && vite preview",
     "test": "npm run test:ssr && npm run test:browser",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:ssr": "vitest run --config vitest.config.ts",
@@ -42,7 +53,7 @@
     "email": "mail@jayfreestone.com",
     "url": "https://www.jayfreestone.com/"
   },
-  "license": "ISC",
+  "license": "0BSD",
   "bugs": {
     "url": "https://github.com/jayfreestone/link-surface/issues"
   },
@@ -56,10 +67,12 @@
     "web-component"
   ],
   "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.11.0",
     "@vitest/browser-playwright": "^4.0.14",
     "playwright": "^1.57.0",
     "tsdown": "^0.16.8",
     "typescript": "^5.9.3",
+    "vite": "^8.1.4",
     "vitest": "^4.0.14"
   }
 }

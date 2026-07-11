@@ -4,6 +4,12 @@
 
 It is a small, framework-neutral custom element. The anchor remains the only semantic and keyboard-operable link, and continues to own its `href`, accessible name, router behavior, `target`, `download`, and `rel`.
 
+**[Live demo](https://jayfreestone.github.io/link-surface/)**
+
+Run the demo locally with `npm run dev` for live reload. Use `npm run site` to
+build the package and compile the deployable demo into `_site`; `npm run serve`
+builds and previews that production output.
+
 ## Install
 
 ```sh
@@ -28,7 +34,18 @@ import "link-surface/auto";
 import "link-surface/styles.css";
 ```
 
-Then provide exactly one real descendant anchor marked with `data-primary-link`:
+### Without a bundler
+
+A single self-contained file registers the element with no imports. Drop it in
+with a plain `<script>` tag — it defines `<link-surface>` on load and exposes the
+API on `window.linkSurface`:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/link-surface/styles.css">
+<script src="https://unpkg.com/link-surface"></script>
+```
+
+Then provide a real descendant anchor marked with `data-primary-link`:
 
 ```html
 <ul>
@@ -52,7 +69,7 @@ Then provide exactly one real descendant anchor marked with `data-primary-link`:
 </ul>
 ```
 
-Before JavaScript loads, the anchor works normally. Once the component finds exactly one valid `a[data-primary-link][href]`, it adds `data-link-surface-ready` and proxies eligible clicks on inert content to `anchor.click()`.
+Before JavaScript loads, the anchor works normally. Once the component is registered, it proxies eligible clicks on inert content to `anchor.click()` whenever the surface contains a valid `a[data-primary-link][href]`. If a surface contains several, the first one it owns in document order is used.
 
 The component does not add a role or `tabindex`, clone the link, use Shadow DOM, or navigate to a URL itself.
 
@@ -72,7 +89,17 @@ The component checks the full composed event path, so descendants inside a marke
 
 The optional stylesheet only supplies block layout and the ready-state cursor. Card appearance remains application-owned.
 
-Pair any hover treatment with a real focus treatment. For example:
+The ready state is expressed purely in CSS, so no attribute is reflected and no `MutationObserver` runs. Style a surface that is registered *and* holds a valid primary link with `:defined:has()`:
+
+```css
+link-surface:defined:has(a[data-primary-link][href]) {
+  cursor: pointer;
+}
+```
+
+`:defined` keeps the styling off until the element is registered (preserving the pre-enhancement appearance), and `:has()` keeps it off for a surface with no valid primary link. Do not use `:defined` alone as the clickable-state signal — an upgraded element can still be missing a valid primary link.
+
+Note that `:has()` cannot exclude a link belonging to a nested surface, so a nested-only surface can still match the style rule even though it will not proxy clicks (the JS enforces ownership). Pair any hover treatment with a real focus treatment. For example:
 
 ```css
 link-surface:focus-within {
@@ -81,11 +108,9 @@ link-surface:focus-within {
 }
 ```
 
-Do not use `:defined` as the clickable-state signal: an upgraded element can still be missing a valid primary link. Use `[data-link-surface-ready]`.
-
 ## Pointer behavior and limitations
 
-Only an unmodified primary-button click on inert content is proxied. The component declines modified clicks, other mouse buttons, pointer drags and cancellations, and interactions while text in the surface is selected.
+Only an unmodified primary-button click on inert content is proxied. The component declines modified clicks, other mouse buttons, and interactions while text in the surface is selected.
 
 Complete native link behavior remains available on the actual anchor. Inert surface space does not reproduce native context menus, URL dragging, browser status-bar previews, middle-click, or modifier-click behavior.
 
@@ -117,7 +142,7 @@ declare module "react" {
 
 ## Browser support
 
-The package ships modern ESM and targets current evergreen browsers with Custom Elements, private class fields, Pointer Events, `Event.composedPath()`, `MutationObserver`, and `Selection` support. The browser test suite runs against current Playwright Chromium, Firefox, and WebKit.
+The package ships modern ESM and targets current evergreen browsers with Custom Elements, private class fields, Pointer Events, `Event.composedPath()`, and `Selection` support. The optional stylesheet also uses the CSS `:has()` selector. The browser test suite runs against current Playwright Chromium, Firefox, and WebKit.
 
 ## Prior art
 
@@ -126,10 +151,13 @@ This component packages and modernizes the redundant-click technique from Heydon
 ## API
 
 ```ts
-defineLinkSurface(
-  name?: string,
-  registry?: CustomElementRegistry,
-): CustomElementConstructor | undefined;
+defineLinkSurface(): void;
 ```
 
-Calling `defineLinkSurface()` repeatedly is safe. A custom name can be supplied when an application needs a namespace. `LinkSurface`, `linkSurfaceTagName`, and the DOM `HTMLElementTagNameMap` declaration are also exported.
+Registers `LinkSurface` as `<link-surface>`. Calling it repeatedly is safe, and it does nothing outside a browser. `LinkSurface`, `linkSurfaceTagName`, and the DOM `HTMLElementTagNameMap` declaration are also exported.
+
+The package ships a [custom elements manifest](https://github.com/webcomponents/custom-elements-manifest) (`custom-elements.json`) for editor and tooling support.
+
+## License
+
+[0BSD](./LICENSE) — use it however you like, no attribution required.
