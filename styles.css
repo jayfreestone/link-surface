@@ -1,0 +1,7 @@
+link-surface {
+  display: block;
+}
+
+link-surface[data-link-surface-ready] {
+  cursor: pointer;
+}

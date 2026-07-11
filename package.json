@@ -1,0 +1,65 @@
+{
+  "name": "link-surface",
+  "version": "0.1.0",
+  "description": "Progressively expand a real anchor's plain-click target across otherwise inert content.",
+  "type": "module",
+  "packageManager": "npm@11.11.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auto": {
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js"
+    },
+    "./styles.css": "./styles.css"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "styles.css"
+  ],
+  "sideEffects": [
+    "./dist/auto.js",
+    "./styles.css"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "npm run test:ssr && npm run test:browser",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:ssr": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run test && npm run build",
+    "prepack": "npm run verify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayfreestone/link-surface.git"
+  },
+  "author": {
+    "name": "Jay Freestone",
+    "email": "mail@jayfreestone.com",
+    "url": "https://www.jayfreestone.com/"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jayfreestone/link-surface/issues"
+  },
+  "homepage": "https://github.com/jayfreestone/link-surface#readme",
+  "keywords": [
+    "anchor",
+    "card",
+    "custom-element",
+    "link",
+    "progressive-enhancement",
+    "web-component"
+  ],
+  "devDependencies": {
+    "@vitest/browser-playwright": "^4.0.14",
+    "playwright": "^1.57.0",
+    "tsdown": "^0.16.8",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  }
+}
