@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>link-surface — expand a real anchor’s click target</title>
 <meta name="description" content="Demo of link-surface, a small custom element that progressively expands a real anchor’s plain-click target across otherwise inert card content.">
+<!-- Fathom - beautiful, simple website analytics -->
+<script src="https://cdn.usefathom.com/script.js" data-site="PUIKCYFS" defer></script>
+<!-- / Fathom -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -83,6 +86,7 @@
   }
   .kicker a { text-decoration: none; }
   .kicker a:hover { text-decoration: underline; }
+  .kicker .creator { margin-inline-start: auto; }
 
   h1 {
     font-family: var(--sans);
@@ -314,6 +318,7 @@
       <span>&lt;link-surface&gt;</span>
       <a href="https://github.com/jayfreestone/link-surface">github</a>
       <a href="https://www.npmjs.com/package/link-surface">npm</a>
+      <a class="creator" href="https://jayfreestone.com">jayfreestone.com ↗</a>
     </p>
     <h1><em>Link Surface</em>: an accessible, framework-agnostic block link for cards & more.</h1>
     <p class="lede">
